@@ -34,7 +34,7 @@ public class bondsTest {
         List<String> bondrate = new ArrayList<>();
         bondrate.add("AA-以下");
         bondSearchBody.setBondrate(bondrate);
-
+        //bondSearchBody.setGuarantee("否");
         bondSearchBody.setIssuerrate(rate);
         bondSearchBody.setPlace(place);
 

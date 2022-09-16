@@ -33,11 +33,16 @@ public class BondSearchService {
 
 
         List<BondsInfo> result =
-                bondsInfos.stream().filter(x -> StringUtils.isBlank(bondSearchBody.getRegion()) || bondSearchBody.getRegion().equals(x.getRegion()))
+                bondsInfos.stream()
                         .filter(x -> CollectionUtils.isEmpty(bondSearchBody.getPlace()) || bondSearchBody.getPlace().contains(x.getPlace()))
                         .filter(x -> CollectionUtils.isEmpty(bondSearchBody.getMethod()) || bondSearchBody.getMethod().contains(x.getMethod()))
-                        .filter(x -> StringUtils.isBlank(bondSearchBody.getGuarantee()) || bondSearchBody.getGuarantee().equals(x.getGuarantee()))
                         .filter(x -> StringUtils.isBlank(bondSearchBody.getRight()) || bondSearchBody.getRight().equals(x.getRight()))
+                        .filter(x -> {
+                            if(StringUtils.isBlank(bondSearchBody.getGuarantee())) return true;
+                            if( bondSearchBody.getGuarantee().equals("是") && StringUtils.isNotBlank(x.getGuarantee())) return true;
+                            if( bondSearchBody.getGuarantee().equals("否") && StringUtils.isBlank(x.getGuarantee())) return true;
+                            return false;
+                        })
                         .filter(x -> { if (CollectionUtils.isEmpty(bondSearchBody.getBondrate()) || bondSearchBody.getBondrate().contains(x.getBondrate()) ){
                             return true;
                         }
@@ -53,8 +58,7 @@ public class BondSearchService {
                             return false;
                         })
                         .collect(Collectors.toList());
-//缺剩余期限
-//.filter( x-> (bondSearchBody.isGuarantee() && StringUtils.isNotBlank(x.getGuarantee())) ||(!bondSearchBody.isGuarantee() && StringUtils.isNotBlank(x.getGuarantee())))
+
         return result;
     }
 
