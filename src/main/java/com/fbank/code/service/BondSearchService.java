@@ -118,6 +118,8 @@ public class BondSearchService {
                             }
                             return false;
                         })
+                        .peek(x -> x.setFmpriceevaluate((double) Math.round(x.getFmpriceevaluate() * 100) / 100))
+                        .peek(x -> x.setLiquidity((double) Math.round(x.getLiquidity() * 100) / 100))
                         .collect(Collectors.toList());
 
         Collections.shuffle(result);

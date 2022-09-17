@@ -40,7 +40,7 @@ public class BondsInfo {
     String issuerrank;
     String regions;
     String dealyield;
-    String liquidity;
+    double liquidity;
     String durationlast;
     String cdcevaluate;
 
