@@ -29,6 +29,19 @@ public class BondsInfo {
     String CDCyes;
     String specail;
     String bondmain;
-
+    double durationyes;
+    double durationend;
+    String finalrate;
+    String fmpriceyes;
+    String fmpriceend;
+    double fmpriceevaluate;
+    double fmpricedeal;
+    String issuerscore;
+    String issuerrank;
+    String regions;
+    String dealyield;
+    String liquidity;
+    String durationlast;
+    String cdcevaluate;
 
 }
