@@ -10,14 +10,15 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
 public class BondSearchService {
-    private final static String path = "D:\\code\\bonds\\Code\\src\\main\\resources\\static\\bond_info_new.json";
-
+    //private final static String path = "D:\\code\\bonds\\Code\\src\\main\\resources\\static\\bond_info_new.json";
+    private static String path = "src/main/resources/static/bond_info_new.json";
     public List<BondsInfo> bondsInfos = new ArrayList<>();
 
     @PostConstruct
@@ -58,6 +59,7 @@ public class BondSearchService {
                             return false;
                         })
                         .collect(Collectors.toList());
+        Collections.shuffle(result);
 
         return result;
     }
