@@ -1,5 +1,7 @@
 package com.fbank.code.service;
 
+import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fbank.code.entity.Bond;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
@@ -9,7 +11,7 @@ import java.util.*;
 public class BondClpexSolver {
 
     public static void main(String[] args) throws IloException {
-        rzdf();
+        bondHandler();
 
     }
 
@@ -132,18 +134,19 @@ public class BondClpexSolver {
     }
 
 
-    public void bondHandler() throws IloException {
+    public static void bondHandler() throws IloException {
+        List<Bond> bonds = Bond.generateRandomBonds(100);
         // 构建筛选条件集合
         HashSet<Integer> filterCondition = new HashSet<>();
         // 初筛城投债
-        List<Bond> bonds = preProcess(filterCondition);
+//        List<Bond> bonds = preProcess(filterCondition);
         List<Bond> optimalBonds = cplexSolver(bonds, filterCondition);
 
 
 
     }
 
-    private List<Bond> cplexSolver(List<Bond> bonds, HashSet<Integer> filterCondition) throws IloException {
+    private static List<Bond> cplexSolver(List<Bond> bonds, HashSet<Integer> filterCondition) throws IloException {
 
         // Ex. 总规模为20亿元
         double totalSize = 2000000000;
@@ -162,6 +165,13 @@ public class BondClpexSolver {
         double[] d = new double[bonds.size()];
         // 估值
         double[] ytm = new double[bonds.size()];
+
+        for (Bond bond : bonds) {
+            d[bonds.indexOf(bond)] = bond.getDuration();
+            ytm[bonds.indexOf(bond)] = bond.getYtm();
+        }
+
+
         // 发行人
         String[] issuer = new String[bonds.size()];
         // 初始化发行人限额Map
@@ -171,6 +181,8 @@ public class BondClpexSolver {
 
         // 1. 创建模型
         IloCplex cplex = new IloCplex();
+
+
         // 2. 定义决策变量
         // x 为交易笔数，用于表征债券的持仓余额
         IloIntVar[] x = cplex.intVarArray(bonds.size(), 0, (int) n);
@@ -200,12 +212,54 @@ public class BondClpexSolver {
 
         IloNumVar z  = cplex.numVar(0, Double.MAX_VALUE);
         for (int i = 0; i < bonds.size(); i++) {
-            numerator .addTerm(ytm[i], x[i]);
+            numerator.addTerm(ytm[i] / n, x[i]);
             denominator.addTerm(1, x[i]);
         }
-        cplex.addMinimize(cplex.diff(numerator, cplex.prod(z, denominator)));
+//        cplex.addMinimize(cplex.diff(numerator, cplex.prod(z, denominator)));
+        //cplex.addEq(0, cplex.diff(numerator, cplex.prod(z, denominator)));
+        cplex.addMaximize(numerator);
+
+        // 5. 设置约束
 
 
+
+        // 4. 设置约束
+
+         //\sum_{i = 1}^{n}{x_i} \leq S
+
+        IloLinearNumExpr s1 = cplex.linearNumExpr();
+        for (int i = 0; i < bonds.size(); i++) {
+            s1.addTerm(1, x[i]);
+        }
+        cplex.addLe(s1, n);
+
+
+        IloNumExpr s2 = cplex.numExpr();
+        for (int i = 0; i < bonds.size(); i++) {
+            s2 = cplex.sum(s2, cplex.prod(x[i], d[i]));
+        }
+
+        IloLinearNumExpr md = cplex.linearNumExpr(1.5);
+        cplex.addLe(cplex.diff(s2, cplex.prod(md, denominator)), 0);
+
+        for (int i = 0; i < bonds.size(); i++) {
+            cplex.addLe(cplex.prod(10,x[i]), denominator);
+        }
+
+        // 5. 模型求解及输出
+        if (cplex.solve()) {
+            cplex.output().println("Solution status = " + cplex.getStatus());
+            cplex.output().println("Solution Value = " + cplex.getObjValue());
+            double[] val = cplex.getValues(x);
+            for (int j = 0; j < bonds.size(); j++) {
+                if (val[j] != 0) {
+                    System.out.println("x" + (j + 1) + " = " + val[j]);
+                    System.out.println(JSONObject.toJSON(bonds.get(j)));
+
+                }
+
+            }
+        }
 
         // 创建目标表达式
 
@@ -217,7 +271,7 @@ public class BondClpexSolver {
 
 
     // 完成城投债数据初筛，根据筛选条件，从总的城投债中筛选出符合条件的城投债
-    public List<Bond> preProcess(HashSet<Integer> filterCondition) {
+    public static List<Bond> preProcess(HashSet<Integer> filterCondition) {
         // 1. 加工过滤条件
         // 过滤条件由前端传输及二次加工，例如：
         //          如果债券余额不满足最小交易单位，那么该债券可以一并过滤
