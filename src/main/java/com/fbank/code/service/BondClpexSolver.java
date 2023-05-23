@@ -3,6 +3,7 @@ package com.fbank.code.service;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fbank.code.entity.Bond;
+import com.fbank.code.entity.BondInfo;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 
@@ -135,7 +136,7 @@ public class BondClpexSolver {
 
 
     public static void bondHandler() throws IloException {
-        List<Bond> bonds = Bond.generateRandomBonds(100);
+        List<Bond> bonds = Bond.generateRandomBonds(1000);
         // 构建筛选条件集合
         HashSet<Integer> filterCondition = new HashSet<>();
         // 初筛城投债
@@ -166,9 +167,25 @@ public class BondClpexSolver {
         // 估值
         double[] ytm = new double[bonds.size()];
 
+        //私募债比例
+        double pr = 0.15;
+        double[] isPrivate = new double[bonds.size()];
+
+        //AAA比例
+        double aaar = 0.45;
+        double[] isAAA = new double[bonds.size()];
+
+        //AA比例
+        double aar = 0.15;
+        double[] isAA = new double[bonds.size()];
+
+
         for (Bond bond : bonds) {
             d[bonds.indexOf(bond)] = bond.getDuration();
             ytm[bonds.indexOf(bond)] = bond.getYtm();
+            isPrivate[bonds.indexOf(bond)] = "2".equals(bond.getRaiseMode()) ? 1 : 0;
+            isAAA[bonds.indexOf(bond)] = bond.getBondRating().equals("AAA") ? 1 : 0;
+            isAA[bonds.indexOf(bond)] = bond.getBondRating().equals("AA") ? 1 : 0;
         }
 
 
@@ -176,8 +193,6 @@ public class BondClpexSolver {
         String[] issuer = new String[bonds.size()];
         // 初始化发行人限额Map
         Map<String, Double> issuerAmount = new HashMap<>();
-        // 是否私募债
-        boolean[] pr = new boolean[bonds.size()];
 
         // 1. 创建模型
         IloCplex cplex = new IloCplex();
@@ -246,6 +261,12 @@ public class BondClpexSolver {
             cplex.addLe(cplex.prod(10,x[i]), denominator);
         }
 
+        //私募债比例
+        cplex.addLe(cplex.diff(cplex.scalProd(isPrivate, x), cplex.prod(pr,denominator)), 0);
+        cplex.addLe(0, cplex.diff(cplex.scalProd(isAAA, x), cplex.prod(aaar, denominator)));
+        cplex.addLe(cplex.diff(cplex.scalProd(isAA, x), cplex.prod(aar,denominator)), 0);
+
+
         // 5. 模型求解及输出
         if (cplex.solve()) {
             cplex.output().println("Solution status = " + cplex.getStatus());
@@ -287,6 +308,13 @@ public class BondClpexSolver {
         //                    重庆大晟资产经营(集团)有限公司 限制为带AAA担保
         //                    重庆共享工业投资有限公司 限制为带AA+及以上担保
         // ......
+
+        // 从Excel中读取债券详情信息，字段和示例数据如下：
+        // ID	PUBLISHDATE	SECODE	CBSKCODE	SELFDEFCODE	EXCHANGE	SYMBOL	BONDNAME	BONDSNAME	SPELLSNAME	BONDTYPE1	BONDTYPE2	ISSUECOMPCODE	ISSCOMPTYPE	INITIALCREDITRATE	MATURITYYEAR	MATURITYDAY	BONDTYLE	RAISEMODE	VARIETYTYPE	CUR	PARVALUE	ISSUEPRICE	INITIALISSAMT	COUPONRATE	COMPENSATIONRATE	ISCVT	ISSWAP	ISINTSPLIT	ISREDEMPTION	ISPROC	STARTDATE	ENDDATE	ISSBEGDATE	ISSENDDATE	LISTDATE	MATURITYDATE	PAYMENTDATE	DELISTDATE	PAYMENTNUM	PERPAYDATE	CALCAMODE	PAYMENTMODE	CALCRULES	PROGMODE	PROGRATE	BASERATECODE	FRNSPREAD	ISMINRATE	MINRATE	FRNADJUSTRT	INENHANCEMODE	EXENHANCEMODE	GUARANTOR	GUARTYPE	REGUARANTOR	SPONSOR	LEADUWER	ORIGINATOR	ABSLEVEL	ABSLEVELRATIO	INFOTAXRATE	ISVALID	TMSTAMP	ENTRYDATE	ENTRYTIME	BASICINFOID	TOTALISSUESCALE	BONDYEAR	BONDBATCH	MAINISSUER	REDEEMDATE	REDEEMPRICE	PUTDATE	PUTPRICE	CVTBDEXPIREMEMP	INTERESTRTMEMO	INTPAYMENTMEMO	MEMO	ISSUERNAME	SECURITYID	BASERATESECODE	ESTMATURITYDATE	BCODE	REDEEMPROVISIONS	BASICASSETS	CALWAY	ISFCHOISE	TRADETYPE	SHISSAMT	SZISSAMT	ISCALCA0229	PUBPAYMENTDATE	SHSETTLEWAY	PAYOFFORDER	CLAREMODE
+        // 776033	20230519	2040873621		N0417833	001006	251143	重庆长寿投资发展集团有限公司2023年面向专业投资者非公开发行短期公司债券(第一期)	23长资D1	CZD	6	621	82668720	99		0		1	2	1	CNY	100	100				0	0	0	0	0	19000101	19000101	19000101	19000101	19000101	19000101	19000101	19000101	0		20	99	2	99		999		0		99	99	0										1	13787451605	2023-05-19 00:00:00	11:34:48	417833		2023	001	99	19000101		19000101						重庆长寿投资发展集团有限公司	1040426785		19000101	23032300001CZD			9	1	0				19000101	1	1	1
+        // 生成对应的BondInfo对象，将其存入List中
+
+        BondInfo bondInfo = new BondInfo();
 
         List<Bond> bonds = new ArrayList<>();
 

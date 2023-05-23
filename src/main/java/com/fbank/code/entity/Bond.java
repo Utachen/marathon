@@ -25,6 +25,7 @@ public class Bond {
     private String guarantorRating;
     private String issuerRegion;
     private double duration;
+    private String raiseMode;
 
     private static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final double MIN_COUPON_RATE = 0.01;
@@ -56,7 +57,8 @@ public class Bond {
         String guarantorRating = RATINGS[random.nextInt(RATINGS.length)];
         String issuerRegion = "中国大陆";
         double duration = Double.parseDouble(df.format(random.nextDouble() * (MAX_TERMS - MIN_TERMS) + MIN_TERMS));
-        return new Bond(code, name, issuer, variety, couponRate, ytm, terms, maturityDate, bondRating, issuerRating, guarantorRating, issuerRegion, duration);
+        String raiseMode = String.valueOf(random.nextInt() / 2);
+        return new Bond(code, name, issuer, variety, couponRate, ytm, terms, maturityDate, bondRating, issuerRating, guarantorRating, issuerRegion, duration, raiseMode);
     }
 
     public static List<Bond> generateRandomBonds(int num) {
