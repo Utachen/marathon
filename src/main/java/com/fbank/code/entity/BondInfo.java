@@ -8,8 +8,10 @@ package com.fbank.code.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class BondInfo {
     private String id;
@@ -108,4 +110,6 @@ public class BondInfo {
     private String shsettleway;
     private String payofforder;
     private String claremode;
+
+
 }
